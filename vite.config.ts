@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       },
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['688e5e0af1031e3fe7b63737981fb9f6.jpg', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'Maison Crocs',
         short_name: 'Maison Crocs',
@@ -27,14 +27,14 @@ export default defineConfig(({ mode }) => ({
         theme_color: '#ffffff',
         icons: [
           {
-            src: 'logo-CCIfU-et.png',
+            src: '688e5e0af1031e3fe7b63737981fb9f6.jpg',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/jpeg'
           },
           {
-            src: 'logo-CCIfU-et.png',
+            src: '688e5e0af1031e3fe7b63737981fb9f6.jpg',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/jpeg'
           }
         ],
         start_url: '/admin',
