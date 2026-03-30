@@ -10,6 +10,78 @@ import { createProduct, updateProduct, deleteProduct, fetchProducts } from '@/ho
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
+// Compress image to target size (100-300 KB)
+const compressImage = async (file: File, targetSizeKB: number = 200): Promise<File> => {
+  const targetSizeBytes = targetSizeKB * 1024;
+  
+  // If already small enough, return original
+  if (file.size <= targetSizeBytes) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        let quality = 0.9;
+        
+        // Reduce dimensions if needed
+        if (width > 1920 || height > 1920) {
+          const maxDim = 1920;
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Progressively reduce quality until file size is acceptable
+        let compressedFile: File | null = null;
+        let attempts = 0;
+        
+        const tryCompress = () => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                resolve(file);
+                return;
+              }
+              
+              if (blob.size <= targetSizeBytes || quality <= 0.1 || attempts >= 10) {
+                compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+                resolve(compressedFile);
+              } else {
+                quality -= 0.1;
+                attempts++;
+                tryCompress();
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        
+        tryCompress();
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function AdminProducts() {
   const { products, setProducts } = useStore();
   const isMobile = useIsMobile();
@@ -72,14 +144,15 @@ export default function AdminProducts() {
 
     setUploading(true);
     try {
-      // Upload product images
+      // Compress and upload product images
       const uploadedUrls: string[] = [];
       for (const file of selectedFiles) {
-        const fileExt = file.name.split('.').pop();
+        const compressedFile = await compressImage(file);
+        const fileExt = compressedFile.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const { data, error } = await supabase.storage
           .from('products')
-          .upload(fileName, file);
+          .upload(fileName, compressedFile);
 
         if (error) throw error;
 
@@ -90,16 +163,17 @@ export default function AdminProducts() {
         uploadedUrls.push(publicUrl);
       }
 
-      // Upload color images and create colors array
+      // Compress and upload color images and create colors array
       const finalColors = [];
       for (const color of colors) {
         let imageUrl = color.file ? '' : (editing?.colors.find(c => c.name === color.name)?.image || '');
         if (color.file) {
-          const fileExt = color.file.name.split('.').pop();
+          const compressedFile = await compressImage(color.file);
+          const fileExt = compressedFile.name.split('.').pop();
           const fileName = `color-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
           const { data, error } = await supabase.storage
             .from('products')
-            .upload(fileName, color.file);
+            .upload(fileName, compressedFile);
 
           if (error) throw error;
 
