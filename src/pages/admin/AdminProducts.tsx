@@ -7,9 +7,12 @@ import type { Product } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { createProduct, updateProduct, deleteProduct, fetchProducts } from '@/hooks/useSupabaseQueries';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 export default function AdminProducts() {
   const { products, setProducts } = useStore();
+  const isMobile = useIsMobile();
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -44,7 +47,6 @@ export default function AdminProducts() {
     setColors([]);
     setCurrentColor({ name: '', hex: '#000000', file: undefined });
     setEditing(null);
-    setShowForm(false);
   };
 
   const startEdit = (p: Product) => {
@@ -153,14 +155,23 @@ export default function AdminProducts() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Supprimer ce produit ? (couleurs/images seront aussi supprimées)')) return;
+    console.log('handleDelete called:', id);
+    const oldProducts = products;
+    // Optimistic update
+    setProducts(prev => prev.filter(p => p.id !== id));
     try {
-      await deleteProduct(id);
+      const result = await deleteProduct(id);
       toast.success('Produit supprimé.');
+      // Final refresh
       const updatedProducts = await fetchProducts();
       setProducts(updatedProducts);
+      console.log('Delete success, new list length:', updatedProducts.length);
     } catch (error) {
-      console.error('Error deleting product:', error);
-      toast.error('Erreur lors de la suppression.');
+      console.error('Delete error:', error);
+      toast.error('Erreur suppression: ' + (error as Error).message);
+      // Restore
+      setProducts(oldProducts);
     }
   };
 
@@ -173,73 +184,92 @@ export default function AdminProducts() {
           <Link to="/admin/dashboard" className="p-1"><ArrowLeft className="w-5 h-5" /></Link>
           <h1 className="text-lg font-semibold">Produits</h1>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="p-2 bg-foreground text-background rounded-lg">
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-
-      {showForm && (
-        <div className="px-4 py-4 space-y-3 border-b">
-          <input placeholder="Nom" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} />
-          <div className="grid grid-cols-2 gap-3">
-            <input placeholder="Prix (DA)" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} type="number" className={inputClass} />
-            <input placeholder="Ancien prix" value={form.oldPrice} onChange={e => setForm({ ...form, oldPrice: e.target.value })} type="number" className={inputClass} />
-          </div>
-          <input placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={inputClass} />
-          <div>
-            <label className="block text-sm font-medium mb-2">Images du produit</label>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
-              className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20"
-            />
-            {selectedFiles.length > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">{selectedFiles.length} fichier(s) sélectionné(s)</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Couleurs disponibles</label>
-            <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-2">
-                <input placeholder="Nom de la couleur" value={currentColor.name} onChange={e => setCurrentColor({ ...currentColor, name: e.target.value })} className={inputClass} />
-                <input type="color" value={currentColor.hex} onChange={e => setCurrentColor({ ...currentColor, hex: e.target.value })} className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20" />
-                <input type="file" accept="image/*" onChange={e => setCurrentColor({ ...currentColor, file: e.target.files?.[0] })} className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20" />
-              </div>
-              <button type="button" onClick={addColor} className="w-full bg-secondary text-secondary-foreground py-2 rounded-xl text-sm font-medium">Ajouter couleur</button>
-            </div>
-            {colors.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {colors.map((color, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 border border-border rounded-xl">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color.hex }}></div>
-                    <span className="text-sm">{color.name}</span>
-                    {color.file && <span className="text-xs text-muted-foreground">Image: {color.file.name}</span>}
-                    <button type="button" onClick={() => removeColor(index)} className="ml-auto p-1"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value as any })} className={inputClass}>
-            <option value="homme">Homme</option>
-            <option value="femme">Femme</option>
-            <option value="enfant">Enfant</option>
-          </select>
-          <input placeholder="Pointures (ex: 39, 40, 41)" value={form.sizes} onChange={e => setForm({ ...form, sizes: e.target.value })} className={inputClass} />
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={form.isPack} onChange={e => setForm({ ...form, isPack: e.target.checked })} />
-            Pack
-          </label>
-          <div className="flex gap-3">
-            <button onClick={handleSave} disabled={uploading} className="flex-1 bg-foreground text-background py-3 rounded-xl text-sm font-semibold disabled:opacity-50">
-              {uploading ? 'Téléchargement...' : editing ? 'Modifier' : 'Ajouter'}
+        <Sheet open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) resetForm(); }}>
+          <SheetTrigger asChild>
+            <button className="p-2 bg-foreground text-background rounded-lg" aria-label="Ajouter produit">
+              <Plus className="w-4 h-4" />
             </button>
-            <button onClick={resetForm} disabled={uploading} className="flex-1 border border-border py-3 rounded-xl text-sm font-medium disabled:opacity-50">Annuler</button>
-          </div>
-        </div>
-      )}
+          </SheetTrigger>
+          <SheetContent side={isMobile ? "bottom" : "right"} className={isMobile ? "h-screen pt-2 pb-20 px-4 max-w-md mx-auto scrollbar-thin scrollbar-thumb-gray-400" : ""}>
+            <SheetHeader>
+              <SheetTitle>{editing ? 'Modifier produit' : 'Ajouter produit'}</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-4 mt-4 flex-1 overflow-y-auto pb-20">
+              <input placeholder="Nom" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} />
+              <div className={isMobile ? "space-y-3" : "grid grid-cols-2 gap-3"}>
+                <input placeholder="Prix (DA)" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} type="number" className={inputClass} />
+                <input placeholder="Ancien prix" value={form.oldPrice} onChange={e => setForm({ ...form, oldPrice: e.target.value })} type="number" className={inputClass} />
+              </div>
+              <textarea placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={`${inputClass} resize-none`} rows={3} />
+              <div>
+                <label className="block text-sm font-medium mb-2">Images du produit</label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20"
+                />
+                {selectedFiles.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="relative">
+                        <img src={URL.createObjectURL(file)} alt={`Preview ${index + 1}`} className="w-full h-16 object-cover rounded-lg border" />
+                        <button type="button" onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== index))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs" aria-label="Supprimer image">×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Couleurs disponibles</label>
+                <div className="space-y-2">
+                  <div className={isMobile ? "space-y-2" : "grid grid-cols-3 gap-2"}>
+                    <input placeholder="Nom de la couleur" value={currentColor.name} onChange={e => setCurrentColor({ ...currentColor, name: e.target.value })} className={inputClass} />
+                    <input type="color" value={currentColor.hex} onChange={e => setCurrentColor({ ...currentColor, hex: e.target.value })} className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20" />
+                    <input type="file" accept="image/*" onChange={e => setCurrentColor({ ...currentColor, file: e.target.files?.[0] })} className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20" />
+                  </div>
+                  <button type="button" onClick={addColor} className="w-full bg-secondary text-secondary-foreground py-2 rounded-xl text-sm font-medium">Ajouter couleur</button>
+                </div>
+                {colors.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {colors.map((color, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 border border-border rounded-xl bg-secondary/20">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full border" style={{ backgroundColor: color.hex }}></div>
+                          {color.file && <img src={URL.createObjectURL(color.file)} alt={color.name} className="w-6 h-6 rounded-full object-cover border" />}
+                        </div>
+                        <span className="text-sm font-medium flex-1">{color.name}</span>
+                        <button type="button" onClick={() => removeColor(index)} className="p-1 text-red-500 hover:bg-red-50 rounded" aria-label="Supprimer couleur"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value as any })} className={inputClass}>
+                <option value="homme">Homme</option>
+                <option value="femme">Femme</option>
+                <option value="enfant">Enfant</option>
+              </select>
+              <div>
+                <label className="block text-sm font-medium mb-2">Pointures disponibles</label>
+                <input placeholder="Ex: 39, 40, 41, 42" value={form.sizes} onChange={e => setForm({ ...form, sizes: e.target.value })} className={inputClass} />
+                <p className="text-xs text-muted-foreground mt-1">Séparez les pointures par des virgules</p>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.isPack} onChange={e => setForm({ ...form, isPack: e.target.checked })} />
+                Pack
+              </label>
+              <div className={isMobile ? "space-y-3" : "flex gap-3"}>
+                <button onClick={handleSave} disabled={uploading} className={isMobile ? "w-full bg-foreground text-background py-3 rounded-xl text-sm font-semibold disabled:opacity-50" : "flex-1 bg-foreground text-background py-3 rounded-xl text-sm font-semibold disabled:opacity-50"}>
+                  {uploading ? 'Téléchargement...' : editing ? 'Modifier' : 'Ajouter'}
+                </button>
+                <button onClick={resetForm} disabled={uploading} className={isMobile ? "w-full border border-border py-3 rounded-xl text-sm font-medium disabled:opacity-50" : "flex-1 border border-border py-3 rounded-xl text-sm font-medium disabled:opacity-50"}>Annuler</button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
 
       <div className="px-4 space-y-3 mt-3">
         {products.map(p => (
@@ -249,8 +279,8 @@ export default function AdminProducts() {
               <p className="font-medium text-sm truncate">{p.name}</p>
               <p className="text-xs text-muted-foreground">{formatPrice(p.price)} {p.oldPrice ? `· ${getDiscountPercent(p.price, p.oldPrice)}% off` : ''}</p>
             </div>
-            <button onClick={() => startEdit(p)} className="p-2"><Edit className="w-4 h-4" /></button>
-            <button onClick={() => handleDelete(p.id)} className="p-2"><Trash2 className="w-4 h-4" /></button>
+            <button onClick={() => startEdit(p)} className="p-2" aria-label="Modifier produit"><Edit className="w-4 h-4" /></button>
+            <button onClick={() => handleDelete(p.id)} className="p-2" aria-label="Supprimer produit"><Trash2 className="w-4 h-4" /></button>
           </div>
         ))}
       </div>

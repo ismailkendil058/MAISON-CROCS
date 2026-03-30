@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Product, WilayaTariff } from '@/lib/utils';
 import { fetchProducts, fetchCategories, fetchWilayas, fetchOrders } from '@/hooks/useSupabaseQueries';
+// import { supabase } from '@/integrations/supabase/client';
 
 export interface Order {
   id: string;
@@ -45,6 +46,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [tariffs, setTariffs] = useState<WilayaTariff[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Check admin session on mount (localStorage only for persistence, trust login sets recent last_login)
+  useEffect(() => {
+    const savedIsAdmin = localStorage.getItem('maisonchic_isAdmin');
+    if (savedIsAdmin === 'true') {
+      setIsAdmin(true);
+    }
+  }, []);
+
+  // Persist isAdmin changes
+  useEffect(() => {
+    if (isAdmin) {
+      localStorage.setItem('maisonchic_isAdmin', 'true');
+    } else {
+      localStorage.removeItem('maisonchic_isAdmin');
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     async function loadData() {

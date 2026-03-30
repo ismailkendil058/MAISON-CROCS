@@ -22,7 +22,6 @@ export default function AdminDashboard() {
   const links = [
     { to: '/admin/orders', label: 'Commandes', icon: ShoppingCart },
     { to: '/admin/products', label: 'Produits', icon: Package },
-    { to: '/admin/categories', label: 'Catégories', icon: Grid3X3 },
     { to: '/admin/tariffs', label: 'Tarifs livraison', icon: Truck },
   ];
 

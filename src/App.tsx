@@ -27,7 +27,14 @@ import AdminTariffs from './pages/admin/AdminTariffs';
 const queryClient = new QueryClient();
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAdmin } = useStore();
+  const { isAdmin, loading } = useStore();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground"></div>
+      </div>
+    );
+  }
   return isAdmin ? <>{children}</> : <Navigate to="/admin" replace />;
 }
 

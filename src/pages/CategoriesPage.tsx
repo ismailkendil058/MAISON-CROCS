@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
-import catFemme from '@/assets/cat-femme.jpg';
+// femme image from external URL (CORS workaround via img src)
+const catFemme = '';
 import catHomme from '@/assets/cat-homme.jpg';
 import catEnfant from '@/assets/cat-enfant.jpg';
 
 const categoryImagesFallback: Record<string, string> = {
-  femme: catFemme,
+  femme: 'https://www.eram.fr/media/catalog/product/8/4/840674_0.jpg?optimize=medium&bg-color=255,255,255&fit=bounds&height=1560&width=1560&canvas=1560:1560',
   homme: catHomme,
   enfant: catEnfant,
 };
@@ -38,7 +39,7 @@ export default function CategoriesPage() {
       </div>
       <div className="px-4 space-y-4 pt-2">
         {categories.map((cat) => (
-          <Link key={cat.id} to={`/categorie/${cat.id}`} className="block relative aspect-[2/1] rounded-xl overflow-hidden">
+          <Link key={cat.id} to={`/categorie/${cat.id}`} className="block relative aspect-[2.2/1] rounded-xl overflow-hidden">
             <img 
               src={cat.image || categoryImagesFallback[cat.id as keyof typeof categoryImagesFallback] || ''} 
               alt={cat.label} 

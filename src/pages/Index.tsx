@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useStore } from '@/context/StoreContext';
 import ProductCard from '@/components/ProductCard';
-import catFemme from '@/assets/cat-femme.jpg';
+// femme image from external URL (CORS workaround via img src)
+const catFemme = '';
 import catHomme from '@/assets/cat-homme.jpg';
 import catEnfant from '@/assets/cat-enfant.jpg';
 
 const categoryImagesFallback: Record<string, string> = {
-  femme: catFemme,
+  femme: 'https://www.eram.fr/media/catalog/product/8/4/840674_0.jpg?optimize=medium&bg-color=255,255,255&fit=bounds&height=1560&width=1560&canvas=1560:1560',
   homme: catHomme,
   enfant: catEnfant,
 };
@@ -53,10 +54,10 @@ export default function Index() {
         <h2 className="text-lg font-semibold mb-4 tracking-tight">Catégories</h2>
         <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4">
           {categories.map((cat) => (
-            <Link
+              <Link
               key={cat.id}
               to={`/categorie/${cat.id}`}
-              className="min-w-[140px] w-[140px] flex-shrink-0"
+              className="min-w-[160px] w-[160px] flex-shrink-0"
             >
               <div className="aspect-square rounded-xl overflow-hidden bg-secondary mb-2">
                 <img
