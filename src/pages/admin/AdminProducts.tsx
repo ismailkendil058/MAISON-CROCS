@@ -190,11 +190,11 @@ export default function AdminProducts() {
               <Plus className="w-4 h-4" />
             </button>
           </SheetTrigger>
-          <SheetContent side={isMobile ? "bottom" : "right"} className={isMobile ? "h-screen pt-2 pb-20 px-4 max-w-md mx-auto scrollbar-thin scrollbar-thumb-gray-400" : ""}>
+          <SheetContent side={isMobile ? "bottom" : "right"} className={isMobile ? "h-screen pt-2 pb-20 px-4 max-w-md mx-auto overflow-y-auto" : ""}>
             <SheetHeader>
               <SheetTitle>{editing ? 'Modifier produit' : 'Ajouter produit'}</SheetTitle>
             </SheetHeader>
-            <div className="space-y-4 mt-4 flex-1 overflow-y-auto pb-20">
+            <div className="space-y-4 mt-4">
               <input placeholder="Nom" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} />
               <div className={isMobile ? "space-y-3" : "grid grid-cols-2 gap-3"}>
                 <input placeholder="Prix (DA)" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} type="number" className={inputClass} />
