@@ -26,14 +26,17 @@ export default function AdminOrders() {
     <div className="pb-8">
       <div className="px-4 pt-4 pb-2 flex items-center gap-3">
         <Link to="/admin/dashboard" className="p-1"><ArrowLeft className="w-5 h-5" /></Link>
-        <h1 className="text-lg font-semibold">Commandes ({orders.length})</h1>
+        <h1 className="text-lg font-semibold">Commandes ({orders?.length ?? 0})</h1>
       </div>
 
-      {orders.length === 0 ? (
+      {orders?.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">Aucune commande.</p>
+      ) : !orders ? (
+        <p className="text-center text-muted-foreground py-12">Chargement...</p>
       ) : (
         <div className="px-4 space-y-3 mt-2">
           {orders.map(o => (
+
             <div key={o.id} className="border border-border rounded-xl p-4 space-y-2">
               <div className="flex justify-between items-start">
                 <div>

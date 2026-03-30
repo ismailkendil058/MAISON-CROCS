@@ -145,7 +145,7 @@ declare module '@/integrations/supabase/types' {
     };
   }
 }
-import type { Product, ProductColor, WilayaTariff } from '@/lib/utils';
+import type { Product, ProductColor, WilayaTariff, Order } from '@/lib/utils';
 
 type ProductWithRelations = Database['public']['Tables']['products']['Row'] & {
   product_colors: Database['public']['Tables']['product_colors']['Row'][];
@@ -214,7 +214,7 @@ export async function fetchWilayas(): Promise<WilayaTariff[]> {
   return data;
 }
 
-export async function fetchOrders() {
+export async function fetchOrders(): Promise<Order[]> {
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -226,7 +226,27 @@ export async function fetchOrders() {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data;
+
+  return (data || []).map((order: any) => ({
+    id: order.id,
+    clientName: order.client_name,
+    phone: order.phone,
+    wilaya: order.wilaya,
+    deliveryType: order.delivery_type as 'domicile' | 'bureau',
+    address: order.address || undefined,
+    items: (order.order_items || []).map((item: any) => ({
+      productId: item.product_id || '',
+      productName: item.product_name,
+      color: item.color || '',
+      size: item.size,
+      quantity: item.quantity,
+      price: item.price
+    })),
+    total: order.total,
+    deliveryFee: order.delivery_fee,
+    status: order.status as 'nouvelle' | 'confirmée' | 'expédiée' | 'livrée' | 'annulée',
+    date: order.created_at
+  }));
 }
 
 // Admin CRUD - Products

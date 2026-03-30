@@ -37,6 +37,27 @@ export function getDiscountPercent(price: number, oldPrice?: number): number | n
   return Math.round(((oldPrice - price) / oldPrice) * 100);
 }
 
+export interface Order {
+  id: string;
+  clientName: string;
+  phone: string;
+  wilaya: string;
+  deliveryType: 'domicile' | 'bureau';
+  address?: string;
+  items: Array<{
+    productId: string;
+    productName: string;
+    color: string;
+    size: number;
+    quantity: number;
+    price: number;
+  }>;
+  total: number;
+  deliveryFee: number;
+  status: 'nouvelle' | 'confirmée' | 'expédiée' | 'livrée' | 'annulée';
+  date: string;
+}
+
 export function formatPrice(price: number): string {
   return price.toLocaleString('fr-DZ') + ' DA';
 }

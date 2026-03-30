@@ -51,7 +51,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       delivery_type: deliveryType,
       address: deliveryType === 'domicile' ? address : undefined,
       total,
-      delivery_fee,
+      delivery_fee: deliveryFee,
       items: items.map(i => ({
         product_name: i.product.name,
         color: i.color,
